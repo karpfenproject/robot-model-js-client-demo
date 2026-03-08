@@ -51,9 +51,9 @@ echo "      → host: 127.0.0.1, port: 8080"
 echo ""
 
 # ── Build (skip tests for speed) --------------------------------------------
-echo "[2/3] Building karpfen-runtime (this may take a moment on first run) ..."
+echo "[2/3] Compiling karpfen-runtime (this may take a moment on first run) ..."
 cd "$RUNTIME_DIR"
-./gradlew build -x test --quiet
+./gradlew installDist -x test --quiet
 echo "      → Build successful"
 echo ""
 
@@ -66,4 +66,4 @@ echo "Now open webui.html in your browser and follow the setup wizard."
 echo "Press Ctrl+C to stop the server."
 echo ""
 
-./gradlew run
+./build/install/karpfen-runtime/bin/karpfen-runtime
