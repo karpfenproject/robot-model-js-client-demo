@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karpfen Robot Demo</title>
+
+    <!-- Google Fonts: Roboto + Roboto Mono + Material Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-shell">
+
+    <!-- ═══════════════════════ App Bar ════════════════════════════════════ -->
+    <header class="app-bar">
+        <span class="material-icons-round logo-icon">smart_toy</span>
+        <h1>Karpfen Robot Demo</h1>
+        <div id="bar-env-badge" class="env-badge"></div>
+        <div class="ws-indicator">
+            <div class="ws-dot" id="ws-dot"></div>
+            <span id="ws-label">Disconnected</span>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════ Main Layout ════════════════════════════════ -->
+    <main class="main-layout">
+
+        <!-- ─────────────────── Left Panel ──────────────────────────────── -->
+        <div class="left-panel">
+
+            <!-- Setup Section -->
+            <div class="setup-scroll">
+                <div class="section-label">Setup Wizard</div>
+
+                <!-- Step 1: Create Environment -->
+                <div class="step-card active" id="step-1">
+                    <div class="step-header">
+                        <div class="step-num">1</div>
+                        <span class="step-title">Create Execution Environment</span>
+                        <span class="material-icons-round step-check">check_circle</span>
+                    </div>
+                    <div class="step-body">
+                        <button class="btn btn-primary" id="btn-create-env">
+                            <span class="material-icons-round">add_circle_outline</span>
+                            Create Environment
+                        </button>
+                        <div id="info-env-key" class="result-chip hidden">
+                            <span class="material-icons-round">key</span>
+                            <span id="txt-env-key"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Load Metamodel -->
+                <div class="step-card disabled" id="step-2">
+                    <div class="step-header">
+                        <div class="step-num">2</div>
+                        <span class="step-title">Load Metamodel</span>
+                        <span class="material-icons-round step-check">check_circle</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="file-btn-wrap">
+                            <button class="btn btn-primary">
+                                <span class="material-icons-round">upload_file</span>
+                                Select .kmeta file
+                            </button>
+                            <input type="file" id="file-metamodel" accept=".kmeta">
+                        </div>
+                        <div id="info-metamodel" class="result-chip hidden">
+                            <span class="material-icons-round">check</span>
+                            <span id="txt-metamodel"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Load Model -->
+                <div class="step-card disabled" id="step-3">
+                    <div class="step-header">
+                        <div class="step-num">3</div>
+                        <span class="step-title">Load World Model</span>
+                        <span class="material-icons-round step-check">check_circle</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="file-btn-wrap">
+                            <button class="btn btn-primary">
+                                <span class="material-icons-round">upload_file</span>
+                                Select .kmodel file
+                            </button>
+                            <input type="file" id="file-model" accept=".kmodel">
+                        </div>
+                        <div id="info-model" class="result-chip hidden">
+                            <span class="material-icons-round">check</span>
+                            <span id="txt-model"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Load Statemachine -->
+                <div class="step-card disabled" id="step-4">
+                    <div class="step-header">
+                        <div class="step-num">4</div>
+                        <span class="step-title">Load Statemachine</span>
+                        <span class="material-icons-round step-check">check_circle</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="inline-field">
+                            <label>Attach to model element</label>
+                            <input type="text" id="input-attached-to" value="turtle">
+                        </div>
+                        <div class="file-btn-wrap">
+                            <button class="btn btn-primary">
+                                <span class="material-icons-round">upload_file</span>
+                                Select .kstates file
+                            </button>
+                            <input type="file" id="file-statemachine" accept=".kstates">
+                        </div>
+                        <div id="info-sm" class="result-chip hidden">
+                            <span class="material-icons-round">check</span>
+                            <span id="txt-sm"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Connect WebSocket -->
+                <div class="step-card disabled" id="step-5">
+                    <div class="step-header">
+                        <div class="step-num">5</div>
+                        <span class="step-title">Connect to Runtime WebSocket</span>
+                        <span class="material-icons-round step-check">check_circle</span>
+                    </div>
+                    <div class="step-body">
+                        <button class="btn btn-primary" id="btn-connect-ws">
+                            <span class="material-icons-round">cable</span>
+                            Connect
+                        </button>
+                        <div id="info-ws" class="result-chip hidden">
+                            <span class="material-icons-round">wifi</span>
+                            <span id="txt-ws"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 6: Run statemachine -->
+                <div class="step-card disabled" id="step-6">
+                    <div class="step-header">
+                        <div class="step-num">6</div>
+                        <span class="step-title">Start Execution Engine</span>
+                        <span class="material-icons-round step-check">check_circle</span>
+                    </div>
+                    <div class="step-body">
+                        <button class="btn btn-primary" id="btn-run">
+                            <span class="material-icons-round">play_arrow</span>
+                            Run
+                        </button>
+                        <div id="info-run" class="result-chip hidden">
+                            <span class="material-icons-round">check</span>
+                            <span>Engine running</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 7: Trigger initial event -->
+                <div class="step-card disabled" id="step-7">
+                    <div class="step-header">
+                        <div class="step-num">7</div>
+                        <span class="step-title">Trigger Statemachine Start Event</span>
+                        <span class="material-icons-round step-check">check_circle</span>
+                    </div>
+                    <div class="step-body">
+                        <p style="font-size:12px; color:#607D8B; margin-bottom:4px;">
+                            Sends <code style="font-family:monospace;background:#EEF;padding:1px 4px;border-radius:4px;">EVENT("public","start")</code> to
+                            transition the statemachine from <em>ready</em> into its run&nbsp;loop.
+                        </p>
+                        <button class="btn btn-primary" id="btn-trigger">
+                            <span class="material-icons-round">electric_bolt</span>
+                            Trigger Start Event
+                        </button>
+                        <div id="info-trigger" class="result-chip hidden">
+                            <span class="material-icons-round">check</span>
+                            <span>Event sent – robot running</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 8: Kill engine -->
+                <div class="step-card disabled" id="step-8">
+                    <div class="step-header">
+                        <div class="step-num">8</div>
+                        <span class="step-title">Stop Engine</span>
+                        <span class="material-icons-round step-check">check_circle</span>
+                    </div>
+                    <div class="step-body">
+                        <button class="btn btn-danger" id="btn-kill">
+                            <span class="material-icons-round">stop_circle</span>
+                            Kill Engine
+                        </button>
+                        <div id="info-kill" class="result-chip hidden">
+                            <span class="material-icons-round">check</span>
+                            <span>Engine stopped</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /setup-scroll -->
+
+            <!-- WebSocket Log -->
+            <div class="log-panel">
+                <div class="log-header">
+                    <span class="material-icons-round">terminal</span>
+                    WebSocket Log
+                    <span class="msg-count" id="log-count">0 msgs</span>
+                </div>
+                <div class="log-body" id="log-body"></div>
+            </div>
+
+        </div><!-- /left-panel -->
+
+        <!-- ─────────────────── Right Panel (Simulation) ──────────────────── -->
+        <div class="right-panel">
+            <div class="sim-card">
+
+                <div class="sim-header">
+                    <span class="material-icons-round">map</span>
+                    <h2>Room Simulation — APB 2101 (10 × 10 m)</h2>
+                </div>
+
+                <!-- Current robot state strip -->
+                <div class="robot-stats" id="robot-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Position</span>
+                        <span class="stat-value" id="stat-pos">5.00, 5.00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Direction</span>
+                        <span class="stat-value" id="stat-dir">0.00, 1.00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Updates</span>
+                        <span class="stat-value" id="stat-updates">0</span>
+                    </div>
+                </div>
+
+                <!-- Canvas -->
+                <div class="canvas-area" id="canvas-area">
+                    <canvas id="sim-canvas"></canvas>
+                </div>
+
+                <!-- Legend -->
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#90A4AE;"></div>
+                        Chair (Ø 1 m)
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#546E7A;"></div>
+                        Table (Ø 3 m)
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#FF6D00; border: 2px solid #E64A19;"></div>
+                        Turtle Robot (Ø 0.2 m)
+                    </div>
+                    <div class="legend-item">
+                        <div style="width:20px;height:3px;background:#FFD600;border-radius:2px;flex-shrink:0;"></div>
+                        Direction
+                    </div>
+                </div>
+
+            </div>
+        </div><!-- /right-panel -->
+
+    </main>
+</div><!-- /app-shell -->
+
+<script src="connector.js"></script>
+<script src="styles.js"></script>
+<script src="visualization.js"></script>
+<script>
+    /* =================================================================
+       App wiring – connects KarpfenConnector callbacks to the UI and
+       wires up all button / file-input event handlers.
+       ================================================================= */
+    'use strict';
+
+    let updateCount = 0;
+
+    // ── Connector callbacks ─────────────────────────────────────────────
+    KarpfenConnector.setCallbacks({
+        onObjectChanged(payload) {
+            if (!payload) return;
+            const { objectId, value } = payload;
+
+            if (objectId === 'turtlePosition' && value) {
+                robot.x = parseFloat(value.x) || robot.x;
+                robot.y = parseFloat(value.y) || robot.y;
+                updateCount++;
+                document.getElementById('stat-pos').textContent =
+                    `${robot.x.toFixed(3)}, ${robot.y.toFixed(3)}`;
+                document.getElementById('stat-updates').textContent = updateCount;
+                scheduleRedraw();
+            }
+            if (objectId === 'turtleDirection' && value) {
+                robot.dx = parseFloat(value.x) || 0;
+                robot.dy = parseFloat(value.y) || 0;
+                document.getElementById('stat-dir').textContent =
+                    `${robot.dx.toFixed(3)}, ${robot.dy.toFixed(3)}`;
+                scheduleRedraw();
+            }
+        },
+
+        onDomainEvent(payload) {
+            // domain events are captured in the log via onLogEntry
+        },
+
+        onWsOpen({ envKey }) {
+            document.getElementById('ws-dot').className    = 'ws-dot connected';
+            document.getElementById('ws-label').textContent = 'Connected';
+        },
+
+        onWsClose({ code, reason }) {
+            document.getElementById('ws-dot').className    = 'ws-dot';
+            document.getElementById('ws-label').textContent = 'Disconnected';
+        },
+
+        onLogEntry(entry) {
+            appendLog(entry);
+        },
+    });
+
+    // ── Step 1: Create Environment ──────────────────────────────────────
+    document.getElementById('btn-create-env').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-create-env');
+        btn.disabled = true;
+        try {
+            const envKey = await KarpfenConnector.createEnvironment();
+            document.getElementById('txt-env-key').textContent = envKey;
+            showResult('info-env-key', envKey);
+            document.getElementById('info-env-key').classList.remove('hidden');
+            document.getElementById('bar-env-badge').textContent = '⚙ ' + envKey;
+            document.getElementById('bar-env-badge').classList.add('visible');
+            completeStep(1);
+            activateStep(2);
+        } catch (e) {
+            btn.disabled = false;
+            setStepError(1, e.message);
+        }
+    });
+
+    // ── Step 2: Load Metamodel ──────────────────────────────────────────
+    document.getElementById('file-metamodel').addEventListener('change', async (evt) => {
+        const file = evt.target.files[0];
+        if (!file) return;
+        try {
+            const content = await readFileAsText(file);
+            await KarpfenConnector.setMetamodel(content);
+            showResult('info-metamodel', file.name + ' loaded', 'success');
+            document.getElementById('info-metamodel').classList.remove('hidden');
+            completeStep(2);
+            activateStep(3);
+        } catch (e) {
+            setStepError(2, e.message);
+        }
+        evt.target.value = '';  // allow re-selection of same file
+    });
+
+    // ── Step 3: Load Model ──────────────────────────────────────────────
+    document.getElementById('file-model').addEventListener('change', async (evt) => {
+        const file = evt.target.files[0];
+        if (!file) return;
+        try {
+            const content = await readFileAsText(file);
+            await KarpfenConnector.setModel(content);
+            showResult('info-model', file.name + ' loaded', 'success');
+            document.getElementById('info-model').classList.remove('hidden');
+            completeStep(3);
+            activateStep(4);
+        } catch (e) {
+            setStepError(3, e.message);
+        }
+        evt.target.value = '';
+    });
+
+    // ── Step 4: Load Statemachine ───────────────────────────────────────
+    document.getElementById('file-statemachine').addEventListener('change', async (evt) => {
+        const file = evt.target.files[0];
+        if (!file) return;
+        const attachedTo = document.getElementById('input-attached-to').value.trim() || 'turtle';
+        try {
+            const content   = await readFileAsText(file);
+            const accessKey = await KarpfenConnector.setStateMachine(content, attachedTo);
+            const shortKey  = accessKey && accessKey.length > 24
+                ? accessKey.slice(0, 24) + '…'
+                : (accessKey || '—');
+            document.getElementById('txt-sm').textContent =
+                `${file.name} → ${attachedTo} | accessKey: ${shortKey}`;
+            showResult('info-sm', `${file.name} loaded, observers registered`, 'success');
+            document.getElementById('info-sm').classList.remove('hidden');
+            completeStep(4);
+            activateStep(5);
+        } catch (e) {
+            setStepError(4, e.message);
+        }
+        evt.target.value = '';
+    });
+
+    // ── Step 5: Connect WebSocket ───────────────────────────────────────
+    document.getElementById('btn-connect-ws').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-connect-ws');
+        btn.disabled = true;
+        try {
+            await KarpfenConnector.connectWebSocket();
+            showResult('info-ws', `Session: ${KarpfenConnector.getClientId()}`, 'success');
+            document.getElementById('info-ws').classList.remove('hidden');
+            completeStep(5);
+            activateStep(6);
+            activateStep(8);  // Kill is always available after connection
+        } catch (e) {
+            btn.disabled = false;
+            setStepError(5, e.message);
+        }
+    });
+
+    // ── Step 6: Run ─────────────────────────────────────────────────────
+    document.getElementById('btn-run').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-run');
+        btn.disabled = true;
+        try {
+            await KarpfenConnector.runAndStart();
+            document.getElementById('info-run').classList.remove('hidden');
+            completeStep(6);
+            activateStep(7);
+        } catch (e) {
+            btn.disabled = false;
+            setStepError(6, e.message);
+        }
+    });
+
+    // ── Step 7: Trigger initial start event ────────────────────────────
+    document.getElementById('btn-trigger').addEventListener('click', () => {
+        try {
+            KarpfenConnector.triggerStartEvent();
+            document.getElementById('info-trigger').classList.remove('hidden');
+            completeStep(7);
+        } catch (e) {
+            setStepError(7, e.message);
+        }
+    });
+
+    // ── Step 8: Kill engine ─────────────────────────────────────────────
+    document.getElementById('btn-kill').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-kill');
+        btn.disabled = true;
+        try {
+            await KarpfenConnector.killEngine();
+            document.getElementById('info-kill').classList.remove('hidden');
+            completeStep(8);
+            document.getElementById('ws-dot').className    = 'ws-dot';
+            document.getElementById('ws-label').textContent = 'Disconnected';
+        } catch (e) {
+            btn.disabled = false;
+            setStepError(8, e.message);
+        }
+    });
+
+    // ── Utility ─────────────────────────────────────────────────────────
+    function readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload  = e => resolve(e.target.result);
+            reader.onerror = () => reject(new Error('Could not read file: ' + file.name));
+            reader.readAsText(file);
+        });
+    }
+</script>
+</body>
+</html>
