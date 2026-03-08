@@ -34,6 +34,17 @@ logging {
   level         = "INFO"
   consoleOutput = true
 }
+
+engine {
+  defaultTickDelayMs = 200
+}
+
+engineTracing {
+  tracingEnabled = true
+  tracingLogDirectory = "logs"
+  tracingConsoleOutput = true
+}
+
 EOF
 
 echo "      → host: 127.0.0.1, port: 8080"
