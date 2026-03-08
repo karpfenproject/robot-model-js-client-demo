@@ -32,17 +32,17 @@ websocket {
 
 logging {
   level         = "INFO"
-  consoleOutput = true
+  consoleOutput = false
 }
 
 engine {
-  defaultTickDelayMs = 0
+  defaultTickDelayMs = 50
 }
 
 engineTracing {
-  tracingEnabled = true
+  tracingEnabled = false
   tracingLogDirectory = "logs"
-  tracingConsoleOutput = true
+  tracingConsoleOutput = false
 }
 
 EOF
