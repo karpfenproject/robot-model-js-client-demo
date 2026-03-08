@@ -16,7 +16,7 @@ const OBSTACLES = [
 ];
 
 // ── Mutable robot state (updated by the connector callback in the main script) ─
-const robot = { x: 5.0, y: 5.0, dx: 0.0, dy: 1.0 };
+const robot = { x: 6.0, y: 3.0, dx: 0.0, dy: 1.0 };
 
 // ── Canvas setup ─────────────────────────────────────────────────────────────
 const canvas = document.getElementById('sim-canvas');
@@ -113,11 +113,11 @@ function drawObstacle(obs, scale) {
 // ── Robot rendering ──────────────────────────────────────────────────────────
 function drawRobot(scale) {
     const [cx, cy] = w2c(robot.x, robot.y, scale);
-    const r        = 0.1 * scale;  // 0.1 m radius → diameter 0.2 m
+    const r        = 0.3 * scale;  // 0.3 m radius → diameter 0.6 m
 
-    // Direction arrow (0.45 m long from centre)
+    // Direction arrow (0.9 m long from centre)
     // World: dx right, dy up → canvas: dx right, dy down (invert y)
-    const arrowLen = 0.45 * scale;
+    const arrowLen = 0.9 * scale;
     const toX = cx + robot.dx * arrowLen;
     const toY = cy - robot.dy * arrowLen;
     drawArrow(cx, cy, toX, toY, '#FFD600', Math.max(2, r * 0.4));

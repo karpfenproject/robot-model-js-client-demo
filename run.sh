@@ -36,7 +36,7 @@ logging {
 }
 
 engine {
-  defaultTickDelayMs = 200
+  defaultTickDelayMs = 0
 }
 
 engineTracing {

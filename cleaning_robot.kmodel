@@ -6,10 +6,10 @@ make object "APB 2101":"Room" {
         prop("d_closest_wall") -> "100.0" // Will be updated by the state machine
 
         has("boundingBox") -> make object "turtleBoundingBox":"TwoDObject" {
-            prop("diameter") -> "0.2"
+            prop("diameter") -> "0.6"
             has("position") -> make object "turtlePosition":"Vector" {
-                prop("x") -> "5.0"
-                prop("y") -> "5.0"
+                prop("x") -> "6.0"
+                prop("y") -> "3.0"
             }
         }
         has("direction") -> make object "turtleDirection":"Vector" {
