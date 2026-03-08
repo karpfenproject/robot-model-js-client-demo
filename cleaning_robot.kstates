@@ -48,8 +48,8 @@ STATEMACHINE ATTACHED TO "Robot" {
                 DO {
                     APPEND("log", "Driving in risky zone")
                     // Drive slow (0.1 units per time step) in the direction the robot is facing.
-                    SET("boundingBox->position->x", EVAL { return $(boundingBox->position->x) + 0.1 * $(direction->x) } )
-                    SET("boundingBox->position->y", EVAL { return $(boundingBox->position->y) + 0.1 * $(direction->y) } )
+                    SET("boundingBox->position->x", EVAL { return $(boundingBox->position->x) + 0.15 * $(direction->x) } )
+                    SET("boundingBox->position->y", EVAL { return $(boundingBox->position->y) + 0.15 * $(direction->y) } )
                  }
             }
         }
@@ -68,7 +68,7 @@ STATEMACHINE ATTACHED TO "Robot" {
         }
         TRANSITION "observe" -> "react to wall" NOT LOOPING {
             CONDITION {
-                EVAL { return $(d_closest_wall) < $(d_closest_obstacle) and $(d_closest_wall) < 0.25 }
+                EVAL { return ($(d_closest_wall) - 0.5 * $(boundingBox->diameter)) < $(d_closest_obstacle) and ($(d_closest_wall) - 0.5 * $(boundingBox->diameter)) < 0.25 }
             }
         }
         TRANSITION "observe" -> "drive" { }
