@@ -72,18 +72,47 @@ The statechart which is executed on the karpfen-server modifies the movement vec
 
 ### Prerequisites
 
-This demo works with the karpfen-runtime server in a development setup, meaning that the server is executed on device and not encapsulated by docker or something similar.
+The karpfen-runtime can be started in two ways: **locally** on the host system, or inside a **Docker container**.  Choose the approach that suits your setup.
 
-Therefore, your system needs to fulfill the following requirements:
+#### Local run prerequisites
 - Java 21+ as default java home in the PATH (`java --version` = 21.x)
 - Python 3.12+ available in the PATH via `python`, `python3` or `py`
 
+#### Docker run prerequisites
+- Docker Engine (or Docker Desktop) installed and the `docker` CLI available in the PATH
+
 ### Starting the Demo
 
-The demo is started by executing `./run.sh` which contains all further setup.
-The run.sh file will modify the application.conf in the karpfen-runtime with custom parameters. If you want to change the configuration, please do so in the run.sh.
+**Before starting**, edit `karpfen-runtime/application.conf` to match your desired configuration. Neither start script overwrites this file — you own it. See the inline comments in `application.conf` for a description of every option, including how to configure the trace log directory for Docker runs.
 
-After the run.sh has started the karpfen-runtime server, you can open the `webui.html` in your browser.
+#### Local run
+
+```bash
+./run_local.sh
+```
+
+Builds the karpfen-runtime using the Java and Python installations on the host system and starts the server directly.  The server runs in the foreground; press `Ctrl+C` to stop it.
+
+#### Docker run
+
+```bash
+./run_docker.sh [HOST_LOG_DIR]
+```
+
+Builds a Docker image (`debian:trixie-slim` runtime, `eclipse-temurin:21-jdk` builder) and starts it as a one-shot container that is removed automatically when stopped.  `HOST_LOG_DIR` is an optional path on the host where engine trace log files will be written (default: `karpfen-runtime/logs`).  To actually receive trace files there, enable tracing in `application.conf` and set `tracingLogDirectory = "/app/logs"` (the container-side mount point).
+
+```conf
+engineTracing {
+  tracingEnabled      = true
+  tracingLogDirectory = "/app/logs"
+}
+```
+
+**Note:** The `karpfen-runtime/application.conf` is bind-mounted read-only into the container, so any edits you make to it take effect on the next `./run_docker.sh` invocation.
+
+---
+
+After the server is running (by either method), open `webui.html` in your browser.
 There, you can now execute the following actions in order (the webui ensures the order). You may observe the output of the runtime on the terminal meanwhile (stdout and stderr are propagated).
 
 Some configurations in this demo-setup are specificly designed for the provided example models. So altough the application asks you to submit models manually, please only select the provided ones. If you know what you are doing, you can play with the statemachine model but without touching the data model or metamodel. Othervise this demo's visualizations may break.
@@ -118,7 +147,7 @@ The following parts are domain-agnostic and can be dropped into any project that
 
 - **`connector.js` (`KarpfenConnector`)** — a complete, self-contained HTTP + WebSocket client for the karpfen-runtime REST API. It exposes a clean promise-based API (`createEnvironment`, `setMetamodel`, `setModel`, `setStateMachine`, `connectWebSocket`, `runAndStart`, `triggerStartEvent`, `killEngine`) and has zero knowledge of any specific domain model. Copy it into any web frontend that talks to karpfen-runtime.
 - **The setup wizard flow in `webui.html`** — the eight-step sequence (create environment → load metamodel → load model → attach statemachine → connect WebSocket → run engine → trigger start event → stop engine) is the standard karpfen execution lifecycle. The step-card HTML structure and progression logic applies to every karpfen project.
-- **`run.sh`** — the server startup script is reusable with minor changes to the `application.conf` block (host, port, tick delay, tracing settings).
+- **`run_local.sh` / `run_docker.sh`** — the server startup scripts are reusable; just edit `application.conf` before running.
 - **`styles.css` / `styles.js`** — the UI shell, app bar, step cards, log panel, and chip components are generic and not robot-specific.
 
 ### How it Works (Oversimplified)
