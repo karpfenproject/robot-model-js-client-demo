@@ -3,6 +3,8 @@ A karpfen engine demo with the execution engine running as a server and a visual
 
 **Important! This repository needs to be cloned with the --recursive flag!**
 
+![Screenshot of the Demo](./assets/screenshot-trutle-demo.png)
+
 ## Project Structure
 
 - `webui.html` contains the single-page demo frontend
@@ -12,17 +14,6 @@ A karpfen engine demo with the execution engine running as a server and a visual
 - `cleaning_robot.kstates` the robot state machine for this demo (moves the robot)
 - `moving_child.kstates` the state machine for moving the child (can be optionally attached)
 - `moving_parent.kstates` the state machine for moving the parent (can be optionally attached)
-
-
-## About this Demo
-
-This projects provides an interactive demo for the `karpfen-runtime` model execution service. By runnign this demo, you get fimilar with all setup and interaction possibilities of the karpfen-runtime. Still, bevore using karpfen in your onw projects, we recommend reading all available karpfen documentation.
-
-After starting the demo (see next section) you can open a HTML view (webui.html). This UI comprises of three parts. A setup panel on the upper left side where you are guided through the setup steps until the environment is running. A websocket log panel on the lower left side and the world model simulation view on the right side (centered).
-
-The log and setup panels are explained in the step-wise instructions in the next section.
-
-**For more information about the karpfen-engine, please consult their respective [documentation](https://github.com/karpfenproject/karpfen-runtime)**
 
 ## About the Karpfen Toolkit
 
@@ -54,6 +45,18 @@ Karpfen is a **model-driven execution framework** built around three domain-spec
 - [KModel Grammar Guide](https://github.com/karpfenproject/karpfen-dsl-tools/blob/main/guides/kmodel_grammar_guide.md)
 - [KStates Grammar Guide](https://github.com/karpfenproject/karpfen-dsl-tools/blob/main/guides/kstates_grammar_guide.md)
 
+
+## About this Specific Demo
+
+This projects provides an interactive demo for the `karpfen-runtime` model execution service. By runnign this demo, you get fimilar with all setup and interaction possibilities of the karpfen-runtime. Still, bevore using karpfen in your onw projects, we recommend reading all available karpfen documentation.
+
+After starting the demo (see next section) you can open a HTML view (webui.html). This UI comprises of three parts. A setup panel on the upper left side where you are guided through the setup steps until the environment is running. A websocket log panel on the lower left side and the world model simulation view on the right side (centered).
+
+The log and setup panels are explained in the step-wise instructions in the next section.
+
+**For more information about the karpfen-engine, please consult their respective [documentation](https://github.com/karpfenproject/karpfen-runtime)**
+
+
 ### World-Model Visualization
 
 The provided models (`cleaning_robot.kmeta|kmodel|kstates`) encode a world comprising a quadratic room with fixed dimensions. This room contains two round obstacles with fixed positions and a robot (turtle) which also has a round bounding box.
@@ -66,8 +69,6 @@ The statechart which is executed on the karpfen-server modifies the movement vec
 ## Running the Demo
 
 **Important! This repository needs to be cloned with the --recursive flag!**
-
-![Screenshot of the Demo](./assets/screenshot-trutle-demo.png)
 
 ### Prerequisites
 
