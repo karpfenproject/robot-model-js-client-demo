@@ -17,32 +17,32 @@ make object "APB 2101":"Room" {
             prop("y") -> "1.0"
         }
 
-        knows("obstacles") -> "chair"
-        knows("obstacles") -> "table"
+        knows("obstacles") -> "child"
+        knows("obstacles") -> "parent"
 
         knows("walls") -> "wall_top"
         knows("walls") -> "wall_right"
         knows("walls") -> "wall_bottom"
         knows("walls") -> "wall_left"
 
-        knows("closest_obstacle") -> "chair" // Will be updated by the state machine
+        knows("closest_obstacle") -> "parent" // Will be updated by the state machine
         knows("closest_wall") -> "wall_top" // Will be updated by the state machine
     }
 
-    has("obstacles") -> make object "chair":"Obstacle" {
-        has("boundingBox") -> make object "chairBoundingBox":"TwoDObject" {
-            prop("diameter") -> "1.0"
-            has("position") -> make object "chairPosition":"Vector" {
-                prop("x") -> "2.0"
-                prop("y") -> "3.0"
+    has("obstacles") -> make object "child":"Obstacle" {
+        has("boundingBox") -> make object "childBoundingBox":"TwoDObject" {
+            prop("diameter") -> "2.0"
+            has("position") -> make object "childPosition":"Vector" {
+                prop("x") -> "3.0"
+                prop("y") -> "2.5"
             }
         }
     }
-    has("obstacles") -> make object "table":"Obstacle" {
-        has("boundingBox") -> make object "tableBoundingBox":"TwoDObject" {
+    has("obstacles") -> make object "parent":"Obstacle" {
+        has("boundingBox") -> make object "parentBoundingBox":"TwoDObject" {
             prop("diameter") -> "3.0"
-            has("position") -> make object "tablePosition":"Vector" {
-                prop("x") -> "5.0"
+            has("position") -> make object "parentPosition":"Vector" {
+                prop("x") -> "6.0"
                 prop("y") -> "7.0"
             }
         }

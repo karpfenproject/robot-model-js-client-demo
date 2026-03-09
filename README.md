@@ -18,6 +18,8 @@ After starting the demo (see next section) you can open a HTML view (webui.html)
 
 The log and setup panels are explained in the step-wise instructions in the next section.
 
+**For more information about the karpfen-engine, please consult their respective [documentation](https://github.com/karpfenproject/karpfen-runtime)**
+
 ### World-Model Visualization
 
 The provided models (`cleaning_robot.kmeta|kmodel|kstates`) encode a world comprising a quadratic room with fixed dimensions. This room contains two round obstacles with fixed positions and a robot (turtle) which also has a round bounding box.

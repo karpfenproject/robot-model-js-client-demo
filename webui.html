@@ -100,17 +100,23 @@
                     </div>
                 </div>
 
-                <!-- Step 4: Load Statemachine -->
+                <!-- Step 4: Attach Statemachine(s) -->
                 <div class="step-card disabled" id="step-4">
                     <div class="step-header">
                         <div class="step-num">4</div>
-                        <span class="step-title">Load Statemachine</span>
+                        <span class="step-title">Attach Statemachine(s)</span>
                         <span class="material-icons-round step-check">check_circle</span>
                     </div>
                     <div class="step-body">
+                        <p style="font-size:11px; color:#607D8B; margin-bottom:2px;">
+                            Select an entity and attach a <code style="font-family:monospace;background:#EEF;padding:1px 4px;border-radius:4px;">.kstates</code> file.
+                            Repeat for every entity that needs a statemachine.
+                        </p>
                         <div class="inline-field">
                             <label>Attach to model element</label>
-                            <input type="text" id="input-attached-to" value="turtle">
+                            <select id="input-attached-to">
+                                <option value="">— load a .kmodel first —</option>
+                            </select>
                         </div>
                         <div class="file-btn-wrap">
                             <button class="btn btn-primary">
@@ -119,10 +125,11 @@
                             </button>
                             <input type="file" id="file-statemachine" accept=".kstates">
                         </div>
-                        <div id="info-sm" class="result-chip hidden">
-                            <span class="material-icons-round">check</span>
-                            <span id="txt-sm"></span>
-                        </div>
+                        <div id="sm-list" class="sm-list"></div>
+                        <button class="btn btn-outlined" id="btn-sm-done" style="display:none;">
+                            <span class="material-icons-round">arrow_forward</span>
+                            Proceed to Step 5
+                        </button>
                     </div>
                 </div>
 
@@ -216,7 +223,7 @@
 
                 <div class="sim-header">
                     <span class="material-icons-round">map</span>
-                    <h2>Room Simulation — APB 2101 (10 × 10 m)</h2>
+                    <h2 id="sim-title">Room Simulation</h2>
                 </div>
 
                 <!-- Current robot state strip -->
@@ -241,23 +248,8 @@
                 </div>
 
                 <!-- Legend -->
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:#90A4AE;"></div>
-                        Chair (Ø 1 m)
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:#546E7A;"></div>
-                        Table (Ø 3 m)
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:#FF6D00; border: 2px solid #E64A19;"></div>
-                        Turtle Robot (Ø 0.2 m)
-                    </div>
-                    <div class="legend-item">
-                        <div style="width:20px;height:3px;background:#FFD600;border-radius:2px;flex-shrink:0;"></div>
-                        Direction
-                    </div>
+                <div class="legend" id="legend">
+                    <!-- Dynamically populated after world model is loaded (Step 3) -->
                 </div>
 
             </div>
@@ -278,6 +270,7 @@
 </div><!-- /app-shell -->
 
 <script src="connector.js"></script>
+<script src="kmodel-parser.js"></script>
 <script src="styles.js"></script>
 <script src="visualization.js"></script>
 <script>
@@ -292,10 +285,10 @@
     // ── Connector callbacks ─────────────────────────────────────────────
     KarpfenConnector.setCallbacks({
         onObjectChanged(payload) {
-            if (!payload) return;
+            if (!payload || !worldModel) return;
             const { objectId, value } = payload;
 
-            if (objectId === 'turtlePosition' && value) {
+            if (objectId === worldModel.robot.positionObjectId && value) {
                 robot.x = parseFloat(value.x) || robot.x;
                 robot.y = parseFloat(value.y) || robot.y;
                 updateCount++;
@@ -304,11 +297,15 @@
                 document.getElementById('stat-updates').textContent = updateCount;
                 scheduleRedraw();
             }
-            if (objectId === 'turtleDirection' && value) {
+            if (objectId === worldModel.robot.directionObjectId && value) {
                 robot.dx = parseFloat(value.x) || 0;
                 robot.dy = parseFloat(value.y) || 0;
                 document.getElementById('stat-dir').textContent =
                     `${robot.dx.toFixed(3)}, ${robot.dy.toFixed(3)}`;
+                scheduleRedraw();
+            }
+            // Update any obstacle that owns this position vector
+            if (value && updateObstaclePosition(objectId, parseFloat(value.x), parseFloat(value.y))) {
                 scheduleRedraw();
             }
         },
@@ -374,7 +371,45 @@
         if (!file) return;
         try {
             const content = await readFileAsText(file);
+
+            // Parse the model to discover room, robot, and obstacles
+            let parsed;
+            try {
+                parsed = parseKmodel(content);
+            } catch (parseErr) {
+                setStepError(3, 'Model parse error: ' + parseErr.message);
+                evt.target.value = '';
+                return;
+            }
+
             await KarpfenConnector.setModel(content);
+
+            // Initialise canvas visualisation from the parsed model
+            initWorldModel(parsed);
+
+            // Tell the connector which object IDs to observe over WebSocket
+            KarpfenConnector.configureSubscriptions({
+                robotPosId:          parsed.robot.positionObjectId,
+                robotDirId:          parsed.robot.directionObjectId,
+                obstaclePositionIds: parsed.obstacles.map(o => o.positionObjectId),
+            });
+
+            // Sync robot-stats strip with initial model values
+            document.getElementById('stat-pos').textContent =
+                `${parsed.robot.x.toFixed(3)}, ${parsed.robot.y.toFixed(3)}`;
+            document.getElementById('stat-dir').textContent =
+                `${parsed.robot.dx.toFixed(3)}, ${parsed.robot.dy.toFixed(3)}`;
+
+            // Update simulation header
+            document.getElementById('sim-title').textContent =
+                `Room: ${parsed.roomId}  (${parsed.roomWidth}\u202f\u00d7\u202f${parsed.roomHeight} m)`;
+
+            // Populate entity dropdown for Step 4
+            populateEntityDropdown(parsed);
+
+            // Rebuild legend
+            updateLegend(parsed);
+
             showResult('info-model', file.name + ' loaded', 'success');
             document.getElementById('info-model').classList.remove('hidden');
             completeStep(3);
@@ -385,27 +420,30 @@
         evt.target.value = '';
     });
 
-    // ── Step 4: Load Statemachine ───────────────────────────────────────
+    // ── Step 4: Attach Statemachine(s) ─────────────────────────────────
     document.getElementById('file-statemachine').addEventListener('change', async (evt) => {
         const file = evt.target.files[0];
         if (!file) return;
-        const attachedTo = document.getElementById('input-attached-to').value.trim() || 'turtle';
+        const sel        = document.getElementById('input-attached-to');
+        const attachedTo = sel.value.trim();
+        if (!attachedTo) {
+            setStepError(4, 'Please select a model element to attach the statemachine to.');
+            evt.target.value = '';
+            return;
+        }
         try {
-            const content   = await readFileAsText(file);
-            const accessKey = await KarpfenConnector.setStateMachine(content, attachedTo);
-            const shortKey  = accessKey && accessKey.length > 24
-                ? accessKey.slice(0, 24) + '…'
-                : (accessKey || '—');
-            document.getElementById('txt-sm').textContent =
-                `${file.name} → ${attachedTo} | accessKey: ${shortKey}`;
-            showResult('info-sm', `${file.name} loaded, observers registered`, 'success');
-            document.getElementById('info-sm').classList.remove('hidden');
-            completeStep(4);
-            activateStep(5);
+            const content = await readFileAsText(file);
+            await KarpfenConnector.setStateMachine(content, attachedTo);
+            _addSmEntry(file.name, attachedTo);
         } catch (e) {
             setStepError(4, e.message);
         }
         evt.target.value = '';
+    });
+
+    document.getElementById('btn-sm-done').addEventListener('click', () => {
+        completeStep(4);
+        activateStep(5);
     });
 
     // ── Step 5: Connect WebSocket ───────────────────────────────────────
@@ -476,6 +514,61 @@
             reader.readAsText(file);
         });
     }
-</script>
+    /** Populate the entity dropdown from a parsed kmodel result. */
+    function populateEntityDropdown(parsed) {
+        const sel = document.getElementById('input-attached-to');
+        sel.innerHTML = '';
+        const rOpt = document.createElement('option');
+        rOpt.value       = parsed.robot.id;
+        rOpt.textContent = `${parsed.robot.id}  (Robot)`;
+        sel.appendChild(rOpt);
+        for (const obs of parsed.obstacles) {
+            const oOpt = document.createElement('option');
+            oOpt.value       = obs.id;
+            oOpt.textContent = `${obs.id}  (Obstacle)`;
+            sel.appendChild(oOpt);
+        }
+    }
+
+    /** Rebuild the canvas legend from a parsed kmodel result. */
+    function updateLegend(parsed) {
+        const legend = document.getElementById('legend');
+        legend.innerHTML = '';
+
+        for (const obs of parsed.obstacles) {
+            const diam = (obs.radius * 2).toFixed(1);
+            const item = document.createElement('div');
+            item.className   = 'legend-item';
+            item.innerHTML   =
+                `<div class="legend-dot" style="background:${obs.color};"></div>${obs.id} (Ø ${diam} m)`;
+            legend.appendChild(item);
+        }
+
+        const robotDiam = (parsed.robot.radius * 2).toFixed(1);
+        const rItem = document.createElement('div');
+        rItem.className = 'legend-item';
+        rItem.innerHTML =
+            `<div class="legend-dot" style="background:#FF6D00; border:2px solid #E64A19;"></div>` +
+            `${parsed.robot.id} (Ø ${robotDiam} m)`;
+        legend.appendChild(rItem);
+
+        const dItem = document.createElement('div');
+        dItem.className = 'legend-item';
+        dItem.innerHTML =
+            `<div style="width:20px;height:3px;background:#FFD600;border-radius:2px;flex-shrink:0;"></div>` +
+            `Direction`;
+        legend.appendChild(dItem);
+    }
+
+    /** Add an entry to the statemachine attachment list in Step 4. */
+    function _addSmEntry(filename, entityId) {
+        const list = document.getElementById('sm-list');
+        const item = document.createElement('div');
+        item.className   = 'result-chip success';
+        item.innerHTML   =
+            `<span class="material-icons-round">check</span>${filename} → ${entityId}`;
+        list.appendChild(item);
+        document.getElementById('btn-sm-done').style.display = '';
+    }</script>
 </body>
 </html>

@@ -1,0 +1,56 @@
+STATEMACHINE ATTACHED TO "Obstacle" {
+
+    STATES {
+
+        INITIAL STATE "ready" { }
+
+        STATE "moving" {
+            
+            STATE "moving-east" {
+                DO {
+                   SET("boundingBox->position->x", EVAL { return $(boundingBox->position->x) + 0.05} )
+                }
+            }
+            STATE "moving-west" {
+                DO {
+                  SET("boundingBox->position->x", EVAL { return $(boundingBox->position->x) - 0.05} )
+                }
+            }
+        }
+       
+    }
+
+    TRANSITIONS {
+        TRANSITION "ready" -> "moving" {
+            CONDITION {
+                EVENT("public", "start")
+            }
+        }
+       
+        TRANSITION "moving-east" -> "moving-east" {
+            CONDITION { 
+                EVAL { return $(boundingBox->position->x) < 7.5 }
+            }
+        }
+        TRANSITION "moving-east" -> "moving-west" {
+            CONDITION {
+                EVAL { return $(boundingBox->position->x) >= 7.5 }
+             }
+        }
+
+        TRANSITION "moving-west" -> "moving-west" {
+            CONDITION { 
+                EVAL { return $(boundingBox->position->x) > 2.5 }
+            }
+        }
+        TRANSITION "moving-west" -> "moving-east" {
+            CONDITION {
+                EVAL { return $(boundingBox->position->x) <= 2.5 }
+             }
+        }
+
+        TRANSITION "moving" -> "moving-east" { }
+    
+    }
+
+}

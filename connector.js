@@ -33,6 +33,13 @@
     let _accessKey = null;
     let _ws        = null;
 
+    // Subscription config – caller sets this after parsing the kmodel
+    let _subs = {
+        robotPosId:          null,
+        robotDirId:          null,
+        obstaclePositionIds: [],
+    };
+
     // UI callbacks – populated via setCallbacks()
     const _cbs = {
         onObjectChanged : null,  // fn(payload)   – objectChanged message received
@@ -100,9 +107,19 @@
     }
 
     /**
-     * Upload the statemachine (.kstates) content, attach it to `attachedTo` (default: "turtle"),
-     * then automatically register the WebSocket client and subscribe to turtle's position
-     * and direction vectors plus the "public" domain event channel.
+     * Configure which object IDs to subscribe to when the WebSocket client is
+     * registered.  Call this after parsing the kmodel (Step 3) and before the
+     * first setStateMachine() call so that all relevant observers are set up.
+     * @param {{ robotPosId: string, robotDirId: string, obstaclePositionIds: string[] }} cfg
+     */
+    function configureSubscriptions(cfg) {
+        Object.assign(_subs, cfg);
+    }
+
+    /**
+     * Upload the statemachine (.kstates) content and attach it to `attachedTo`.
+     * On the *first* call the WebSocket client is also registered and observers
+     * are set up (subsequent calls to setStateMachine() skip re-registration).
      * Returns the WebSocket access key.
      */
     async function setStateMachine(content, attachedTo) {
@@ -223,7 +240,10 @@
     // ---------------------------------------------------------- Private helpers
 
     async function _autoRegisterObservers() {
-        // 1. Obtain a WebSocket access key for this demo client
+        // Guard: only register once even when multiple statemachines are uploaded
+        if (_accessKey) return;
+
+        // 1. Obtain a WebSocket access key for this client
         const res = await fetch(
             `${BASE_URL}/registerClientForWebSocket?clientId=${_enc(CLIENT_ID)}&envKey=${_enc(_envKey)}`,
             { method: 'POST' }
@@ -231,11 +251,14 @@
         await _assertOk(res, 'Register client for WebSocket');
         _accessKey = (await res.text()).trim();
 
-        // 2. Subscribe to the turtle's position vector (updated each tick by the statemachine)
-        await _registerObjectObserver('turtlePosition');
+        // 2. Subscribe to the robot's position and direction vectors
+        if (_subs.robotPosId) await _registerObjectObserver(_subs.robotPosId);
+        if (_subs.robotDirId) await _registerObjectObserver(_subs.robotDirId);
 
-        // 3. Subscribe to the turtle's direction vector (updated when reacting to obstacles/walls)
-        await _registerObjectObserver('turtleDirection');
+        // 3. Subscribe to every obstacle's position vector
+        for (const posId of (_subs.obstaclePositionIds || [])) {
+            await _registerObjectObserver(posId);
+        }
 
         // 4. Subscribe to the "public" domain to receive statemachine event notifications
         await _registerDomainListener('public');
@@ -278,6 +301,7 @@
         createEnvironment,
         setMetamodel,
         setModel,
+        configureSubscriptions,
         setStateMachine,
         connectWebSocket,
         runAndStart,

@@ -3,20 +3,23 @@
  * Canvas-based 2D room simulation for the Karpfen Robot Demo.
  *
  * Exposes globals used by the main app script:
- *   robot        – { x, y, dx, dy }  mutable robot state
+ *   worldModel       – parsed model object, null until initWorldModel() is called
+ *   robot            – { x, y, dx, dy, radius }  mutable robot state
+ *   obstacles        – mutable array of obstacle states
+ *   initWorldModel(parsed)  – initialise from a parseKmodel() result
+ *   updateObstaclePosition(posObjectId, x, y) – update an obstacle's position
  *   scheduleRedraw() – request an animation-frame redraw
  */
 'use strict';
 
-// ── Static world model (mirrors cleaning_robot.kmodel) ──────────────────────
-const ROOM_SIZE = 10;   // metres, both axes
-const OBSTACLES = [
-    { id: 'chair', cx: 2.0, cy: 3.0, r: 0.5,  color: '#90A4AE', label: 'Chair' },
-    { id: 'table', cx: 5.0, cy: 7.0, r: 1.5,  color: '#546E7A', label: 'Table' },
-];
+// ── World model – null until kmodel is parsed and initWorldModel() is called ─
+let worldModel = null;
 
-// ── Mutable robot state (updated by the connector callback in the main script) ─
-const robot = { x: 6.0, y: 3.0, dx: 0.0, dy: 1.0 };
+// ── Mutable robot state (reset by initWorldModel, updated by WS callbacks) ───
+const robot = { x: 0, y: 0, dx: 0, dy: 1, radius: 0.3 };
+
+// ── Mutable obstacle list (reset by initWorldModel, updated by WS callbacks) ─
+let obstacles = [];
 
 // ── Canvas setup ─────────────────────────────────────────────────────────────
 const canvas = document.getElementById('sim-canvas');
@@ -26,63 +29,125 @@ const PAD    = 28;  // pixel padding inside canvas on each side
 let rafPending = false;
 
 // ── Coordinate transform ─────────────────────────────────────────────────────
-/** Convert world coords (x right, y up) to canvas pixels (x right, y down). */
-function w2c(wx, wy, scale) {
-    return [PAD + wx * scale, canvas.height - PAD - wy * scale];
+// World coords (x right, y up) → canvas pixels (x right, y down).
+// roomPxH is the pixel height of the room rectangle (passed from draw context).
+function w2c(wx, wy, scale, roomPxH) {
+    return [PAD + wx * scale, PAD + roomPxH - wy * scale];
+}
+
+// ── Initialise world from parsed kmodel ──────────────────────────────────────
+function initWorldModel(parsed) {
+    worldModel    = parsed;
+    robot.x       = parsed.robot.x;
+    robot.y       = parsed.robot.y;
+    robot.dx      = parsed.robot.dx;
+    robot.dy      = parsed.robot.dy;
+    robot.radius  = parsed.robot.radius;
+    // Deep-copy so caller mutations don't affect our live state
+    obstacles     = parsed.obstacles.map(o => Object.assign({}, o));
+    scheduleRedraw();
+}
+
+// ── Update an obstacle position by its position-vector object ID ──────────────
+function updateObstaclePosition(posObjectId, x, y) {
+    const obs = obstacles.find(o => o.positionObjectId === posObjectId);
+    if (!obs) return false;
+    if (!isNaN(x)) obs.x = x;
+    if (!isNaN(y)) obs.y = y;
+    return true;
 }
 
 // ── Main draw ────────────────────────────────────────────────────────────────
 function draw() {
     if (!canvas.width) return;
-    const scale  = (canvas.width - 2 * PAD) / ROOM_SIZE;
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const [rx, ry] = w2c(0, ROOM_SIZE, scale);
-    const roomPx   = ROOM_SIZE * scale;
+    if (!worldModel) {
+        drawPlaceholder();
+        return;
+    }
 
-    // Floor fill + grid
+    const roomW   = worldModel.roomWidth;
+    const roomH   = worldModel.roomHeight;
+    // Uniform scale so obstacles and robot don't appear stretched
+    const scale   = Math.min(
+        (canvas.width  - 2 * PAD) / roomW,
+        (canvas.height - 2 * PAD) / roomH
+    );
+    const roomPxW = roomW * scale;
+    const roomPxH = roomH * scale;
+
+    const [rx, ry] = w2c(0, roomH, scale, roomPxH);
+
+    // Floor fill
     ctx.fillStyle = '#F8FFF0';
-    ctx.fillRect(rx, ry, roomPx, roomPx);
+    ctx.fillRect(rx, ry, roomPxW, roomPxH);
+
+    // Grid
     ctx.strokeStyle = 'rgba(0,0,0,0.04)';
-    ctx.lineWidth = 1;
-    for (let i = 1; i < ROOM_SIZE; i++) {
+    ctx.lineWidth   = 1;
+    for (let i = 1; i < roomW; i++) {
         const gx = rx + i * scale;
-        const gy = ry + i * scale;
-        ctx.beginPath(); ctx.moveTo(gx, ry); ctx.lineTo(gx, ry + roomPx); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(rx, gy); ctx.lineTo(rx + roomPx, gy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(gx, ry); ctx.lineTo(gx, ry + roomPxH); ctx.stroke();
+    }
+    for (let j = 1; j < roomH; j++) {
+        const gy = ry + j * scale;
+        ctx.beginPath(); ctx.moveTo(rx, gy); ctx.lineTo(rx + roomPxW, gy); ctx.stroke();
     }
 
     // Room border walls
     ctx.strokeStyle = '#37474F';
     ctx.lineWidth   = 3;
     ctx.lineJoin    = 'round';
-    ctx.strokeRect(rx, ry, roomPx, roomPx);
+    ctx.strokeRect(rx, ry, roomPxW, roomPxH);
 
     // Cardinal direction labels
     ctx.fillStyle    = '#78909C';
     ctx.font         = `bold ${Math.max(9, scale * 0.35)}px Roboto, sans-serif`;
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
-    const mid = rx + roomPx / 2;
-    ctx.fillText('N', mid,         ry - 13);
-    ctx.fillText('S', mid,         ry + roomPx + 13);
-    ctx.fillText('W', rx - 13,     ry + roomPx / 2);
-    ctx.fillText('E', rx + roomPx + 13, ry + roomPx / 2);
+    ctx.fillText('N', rx + roomPxW / 2, ry - 13);
+    ctx.fillText('S', rx + roomPxW / 2, ry + roomPxH + 13);
+    ctx.fillText('W', rx - 13,          ry + roomPxH / 2);
+    ctx.fillText('E', rx + roomPxW + 13, ry + roomPxH / 2);
 
     // Obstacles
-    for (const obs of OBSTACLES) {
-        drawObstacle(obs, scale);
+    for (const obs of obstacles) {
+        drawObstacle(obs, scale, roomPxH);
     }
 
     // Robot
-    drawRobot(scale);
+    drawRobot(scale, roomPxH);
+}
+
+// ── Placeholder rendered before any model is loaded ──────────────────────────
+function drawPlaceholder() {
+    const w = canvas.width, h = canvas.height;
+    ctx.fillStyle = '#F8F9FA';
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.save();
+    ctx.strokeStyle = '#B0BEC5';
+    ctx.lineWidth   = 2;
+    ctx.setLineDash([8, 6]);
+    ctx.strokeRect(24, 24, w - 48, h - 48);
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle    = '#90A4AE';
+    ctx.font         = `500 ${Math.max(12, Math.min(16, w * 0.04))}px Roboto, sans-serif`;
+    ctx.fillText('No world model loaded', w / 2, h / 2 - 16);
+    ctx.fillStyle = '#B0BEC5';
+    ctx.font      = `${Math.max(10, Math.min(13, w * 0.03))}px Roboto, sans-serif`;
+    ctx.fillText('Upload a .kmodel file in Step\u202F3 to visualise the room', w / 2, h / 2 + 14);
 }
 
 // ── Obstacle rendering ───────────────────────────────────────────────────────
-function drawObstacle(obs, scale) {
-    const [cx, cy] = w2c(obs.cx, obs.cy, scale);
-    const r = obs.r * scale;
+function drawObstacle(obs, scale, roomPxH) {
+    const [cx, cy] = w2c(obs.x, obs.y, scale, roomPxH);
+    const r = obs.radius * scale;
 
     // Drop shadow
     ctx.save();
@@ -102,18 +167,18 @@ function drawObstacle(obs, scale) {
     ctx.lineWidth   = 1.5;
     ctx.stroke();
 
-    // Label
+    // Label (obstacle ID)
     ctx.fillStyle    = '#fff';
     ctx.font         = `bold ${Math.max(9, r * 0.38)}px Roboto, sans-serif`;
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(obs.label, cx, cy);
+    ctx.fillText(obs.id, cx, cy);
 }
 
 // ── Robot rendering ──────────────────────────────────────────────────────────
-function drawRobot(scale) {
-    const [cx, cy] = w2c(robot.x, robot.y, scale);
-    const r        = 0.3 * scale;  // 0.3 m radius → diameter 0.6 m
+function drawRobot(scale, roomPxH) {
+    const [cx, cy] = w2c(robot.x, robot.y, scale, roomPxH);
+    const r        = robot.radius * scale;
 
     // Direction arrow (0.9 m long from centre)
     // World: dx right, dy up → canvas: dx right, dy down (invert y)

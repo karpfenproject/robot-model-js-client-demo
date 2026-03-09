@@ -61,14 +61,27 @@ function appendLog(entry) {
     if (entry.type === 'objectChanged') {
         tagClass = 'tag-objectChanged';
         try {
-            const p = entry.msg.payload;
-            const v = p.value || {};
-            if (p.objectId === 'turtlePosition') {
-                content = `<span class="hi">position</span>  x=${fmt(v.x)}  y=${fmt(v.y)}`;
-            } else if (p.objectId === 'turtleDirection') {
-                content = `<span class="hi">direction</span> dx=${fmt(v.x)}  dy=${fmt(v.y)}`;
+            const p   = entry.msg.payload;
+            const v   = p.value || {};
+            const oid = p.objectId;
+
+            // Derive a human-readable label using the live world model when available
+            let label = oid;
+            if (typeof worldModel !== 'undefined' && worldModel) {
+                if (oid === worldModel.robot.positionObjectId) {
+                    label = `pos·${worldModel.robot.id}`;
+                } else if (oid === worldModel.robot.directionObjectId) {
+                    label = `dir·${worldModel.robot.id}`;
+                } else if (typeof obstacles !== 'undefined') {
+                    const obs = obstacles.find(o => o.positionObjectId === oid);
+                    if (obs) label = `pos·${obs.id}`;
+                }
+            }
+
+            if (v.x !== undefined || v.y !== undefined) {
+                content = `<span class="hi">${label}</span>  x=${fmt(v.x)}  y=${fmt(v.y)}`;
             } else {
-                content = `${p.objectId}: ${JSON.stringify(v)}`;
+                content = `${oid}: ${JSON.stringify(v)}`;
             }
         } catch { content = JSON.stringify(entry.msg.payload); }
 
