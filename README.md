@@ -1,6 +1,8 @@
 # robot-model-js-client-demo
 A karpfen engine demo with the execution engine running as a server and a visual minimal frontend in javascript and HTML
 
+**Important! This repository needs to be cloned with the --recursive flag!**
+
 ## Project Structure
 
 - `webui.html` contains the single-page demo frontend
