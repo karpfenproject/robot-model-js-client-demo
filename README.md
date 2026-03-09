@@ -67,6 +67,8 @@ The statechart which is executed on the karpfen-server modifies the movement vec
 
 **Important! This repository needs to be cloned with the --recursive flag!**
 
+![Screenshot of the Demo](./assets/screenshot-trutle-demo.png)
+
 ### Prerequisites
 
 This demo works with the karpfen-runtime server in a development setup, meaning that the server is executed on device and not encapsulated by docker or something similar.
